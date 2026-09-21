@@ -236,6 +236,10 @@ fn page_url(page: usize) -> String {
 }
 
 fn document(config: &BlogConfig, title: &str, content: Markup) -> String {
+    let favicon_url = config
+        .favicon_url
+        .clone()
+        .unwrap_or_else(|| asset_url("favicon.svg"));
     html! {
         (DOCTYPE)
         html lang="en" {
@@ -244,9 +248,7 @@ fn document(config: &BlogConfig, title: &str, content: Markup) -> String {
                 meta name="viewport" content="width=device-width, initial-scale=1";
                 meta name="description" content=(&config.site_description);
                 title { (title) " · " (&config.site_name) }
-                @if let Some(favicon_url) = &config.favicon_url {
-                    link rel="icon" href=(favicon_url);
-                }
+                link rel="icon" href=(favicon_url);
                 link rel="stylesheet" href=(asset_url("blog.min.css"));
                 link rel="stylesheet" href=(asset_url("theme-overrides.css"));
             }

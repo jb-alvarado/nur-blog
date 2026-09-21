@@ -45,6 +45,13 @@ scope = "root"
 access = "public"
 
 [[routes]]
+id = "favicon"
+method = "GET"
+path = "/favicon.ico"
+scope = "root"
+access = "public"
+
+[[routes]]
 id = "page"
 method = "GET"
 path = "/{page_slug}"
@@ -70,8 +77,8 @@ access = "admin"
 styles = ["admin.min.css"]
 
 [[admin.menu]]
-label = "Blog"
-labels = { de = "Blog", en = "Blog" }
+label = "Settings"
+labels = { de = "Einstellungen", en = "Settings" }
 path = "/settings"
 icon = "bi-journal-richtext"
 access = "admin"

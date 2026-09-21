@@ -18,7 +18,8 @@ if (dialog) {
     const query = input.value.trim();
     request?.abort();
     if (query.length < 2) {
-      results.innerHTML = '<p class="search-state">Enter at least two characters.</p>';
+      results.innerHTML =
+        '<p class="search-state">Enter at least two characters.</p>';
       return;
     }
 
@@ -37,7 +38,8 @@ if (dialog) {
       results.innerHTML = await response.text();
     } catch (error) {
       if (error.name !== "AbortError")
-        results.innerHTML = '<p class="search-state">Search is currently unavailable.</p>';
+        results.innerHTML =
+          '<p class="search-state">Search is currently unavailable.</p>';
     }
   };
 

@@ -26,7 +26,7 @@ class NurCmsBlogSettings extends HTMLElement {
     form.append(
       this.field("Site name", "site_name", "text"),
       this.field("Site description", "site_description", "text"),
-      this.field("Favicon URL", "favicon_url", "text", "/uploads/favicon.svg"),
+      this.faviconField(),
       this.field("Article content type slug", "article_type", "text"),
       this.field("Page content type slug", "page_type", "text"),
       this.field("Index page slug", "index_page_slug", "text"),
@@ -69,6 +69,65 @@ class NurCmsBlogSettings extends HTMLElement {
     return label;
   }
 
+  faviconField() {
+    const field = document.createElement("div");
+    field.className = "nur-blog-settings__favicon";
+    const label = document.createElement("label");
+    label.htmlFor = "nur-blog-favicon-url";
+    label.textContent = "Favicon URL";
+    const controls = document.createElement("div");
+    controls.className = "nur-blog-settings__favicon-controls";
+    const input = document.createElement("input");
+    input.id = "nur-blog-favicon-url";
+    input.name = "favicon_url";
+    input.type = "text";
+    input.placeholder = "/uploads/favicon.svg";
+    input.addEventListener("input", () => this.updateFaviconPreview());
+    controls.append(input);
+
+    if (typeof this.context?.selectMedia === "function") {
+      const select = document.createElement("button");
+      select.type = "button";
+      select.textContent = "Select from media";
+      select.addEventListener("click", () => this.selectFavicon());
+      controls.append(select);
+    }
+
+    const clear = document.createElement("button");
+    clear.type = "button";
+    clear.textContent = "Clear";
+    clear.addEventListener("click", () => {
+      input.value = "";
+      this.updateFaviconPreview();
+    });
+    controls.append(clear);
+
+    this.faviconPreview = document.createElement("img");
+    this.faviconPreview.className = "nur-blog-settings__favicon-preview";
+    this.faviconPreview.alt = "Favicon preview";
+    field.append(label, controls, this.faviconPreview);
+    return field;
+  }
+
+  async selectFavicon() {
+    try {
+      const media = await this.context.selectMedia({ types: ["image"] });
+      if (!media) return;
+      const input = this.querySelector('[name="favicon_url"]');
+      input.value = media.url;
+      this.updateFaviconPreview();
+    } catch (error) {
+      this.status(error.message || "Could not select favicon.", "error");
+    }
+  }
+
+  updateFaviconPreview() {
+    const url = this.querySelector('[name="favicon_url"]')?.value.trim();
+    this.faviconPreview.hidden = !url;
+    if (url) this.faviconPreview.src = url;
+    else this.faviconPreview.removeAttribute("src");
+  }
+
   fill() {
     const form = this.querySelector("form");
     for (const name of [
@@ -85,6 +144,7 @@ class NurCmsBlogSettings extends HTMLElement {
     this.navigationRows.replaceChildren();
     for (const item of this.settings.navigation ?? [])
       this.addNavigationRow(item);
+    this.updateFaviconPreview();
   }
 
   addNavigationRow(item = { label: "", href: "" }) {

@@ -20,16 +20,27 @@ cargo build --locked --package nur-blog --target wasm32-wasip2 --release
 
 source_wasm="blog/target/wasm32-wasip2/release/nur_blog.wasm"
 package_wasm="nur_blog.wasm"
-for asset in blog/assets/blog.min.css blog/assets/admin.min.css blog/assets/admin.min.js; do
+for asset in \
+    blog/assets/blog.min.css \
+    blog/assets/blog.min.js \
+    blog/assets/admin.min.css \
+    blog/assets/admin.min.js; do
     test -s "$asset"
 done
 test -f blog/assets/theme-overrides.css
+test -s blog/assets/favicon.svg
 
 install -d "$package_dir/assets" "$package_dir/migrations"
 install -m 0644 README.md LICENSE "$package_dir"
 install -m 0644 blog/migrations/*.sql "$package_dir/migrations"
-install -m 0644 blog/assets/blog.min.css blog/assets/admin.min.css blog/assets/admin.min.js \
-    blog/assets/theme-overrides.css "$package_dir/assets"
+install -m 0644 \
+    blog/assets/blog.min.css \
+    blog/assets/blog.min.js \
+    blog/assets/admin.min.css \
+    blog/assets/admin.min.js \
+    blog/assets/favicon.svg \
+    blog/assets/theme-overrides.css \
+    "$package_dir/assets"
 install -m 0644 "$source_wasm" "$package_dir/$package_wasm"
 sed "s#^module = .*#module = \"$package_wasm\"#" blog/plugin.toml > "$package_dir/plugin.toml"
 

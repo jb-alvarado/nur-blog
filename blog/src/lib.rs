@@ -35,9 +35,27 @@ impl Guest for Blog {
             "pagination" => render_pagination(&request),
             "article" => render_article(&request),
             "search" => render_search(&request),
+            "favicon" => Ok(default_favicon_response()),
             "page" => render_content_page(&request),
             _ => Err(PluginError::NotFound),
         }
+    }
+}
+
+fn default_favicon_response() -> Response {
+    Response {
+        status: 200,
+        headers: vec![
+            Header {
+                name: "content-type".into(),
+                value: "image/svg+xml".into(),
+            },
+            Header {
+                name: "cache-control".into(),
+                value: "public, max-age=86400".into(),
+            },
+        ],
+        body: include_bytes!("../assets/favicon.svg").to_vec(),
     }
 }
 

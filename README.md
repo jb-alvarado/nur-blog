@@ -108,7 +108,9 @@ The resulting archive is written to dist/nur-blog-<version>.tar.gz.
 Open **Blog** in the nur-cms admin menu to configure:
 
 - Site name and description
-- Optional favicon URL, for example `/uploads/favicon.svg`
+- Optional favicon URL, for example `/uploads/favicon.svg`; without one, the
+  bundled default icon is used. Images can be selected from the existing
+  nur-cms media browser.
 - Article and Page content-type slugs
 - Optional index-Page slug for the hero
 - Articles per overview page, from 1 to 24
@@ -125,6 +127,7 @@ navigation are validated before they are stored.
 | / | Hero and newest article previews |
 | /page/2 | Further preview pages |
 | /search?q=term | Search published Articles and Pages |
+| /favicon.ico | Bundled default favicon |
 | /{article_type}/{slug} | Full CMS Article |
 | /{slug} | Full CMS Page |
 
