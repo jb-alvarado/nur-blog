@@ -1,0 +1,24 @@
+[package]
+name = "nur-blog"
+version = "0.1.0"
+edition = "2024"
+description = "A responsive Maud blog frontend for nur-cms"
+license = "GPL-3.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+maud = "0.27"
+percent-encoding = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+wit-bindgen = "0.62"
+
+[build-dependencies]
+lightningcss = "1.0.0-alpha.72"
+oxc_allocator = "0.151"
+oxc_codegen = "0.151"
+oxc_minifier = "0.151"
+oxc_parser = "0.151"
+oxc_span = "0.151"

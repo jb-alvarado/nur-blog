@@ -1,0 +1,17 @@
+# Rust and Wasm build output
+/blog/target/
+/dist/
+/blog/assets/*.min.css
+/blog/assets/*.min.js
+
+# Local editor and operating-system files
+.DS_Store
+*.swp
+*.swo
+/.idea/
+/.vscode/
+
+# Local configuration and environment files
+.env
+.env.*
+!.env.example
