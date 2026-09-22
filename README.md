@@ -6,11 +6,11 @@ all public HTML with [Maud](https://maud.lambda.xyz/). Published CMS Pages and
 Articles are read through the plugin content API; drafts are never available to
 the frontend.
 
-The plugin provides a restrained, neutral blog design with a header, footer,
-left-side navigation, an optional CMS-driven hero, article previews and
-pagination. Its settings are maintained in the nur-cms admin interface, so a
-rebuild is not needed when the site name, content-type slugs or navigation
-changes, including the favicon.
+The plugin provides a restrained, blog design with a header, footer
+and with a persistent left-side navigation on large screens, an
+optional CMS-driven hero, article previews and pagination. Its settings are
+maintained in the nur-cms admin interface, so a rebuild is not needed when the
+site name, content-type slugs or navigation changes, including the favicon.
 
 ## Features
 
@@ -22,6 +22,11 @@ changes, including the favicon.
   hero.
 - Full-text search across published Articles and Pages in a keyboard-accessible
   modal, with a non-JavaScript search page as fallback.
+- Locale-filtered CMS content and compile-time English and German interface
+  translations powered by [rust-i18n](https://github.com/longbridge/rust-i18n).
+- Category navigation with article counts in the desktop sidebar and as a
+  dropdown in the mobile menu. Category filters are retained during pagination
+  and language changes.
 - Optional media, authors, category, tags and publication date.
 - Safe CMS HTML output, including the shared Comrak/Syntect code highlighting
   supplied by nur-cms.
@@ -30,7 +35,11 @@ changes, including the favicon.
 
 ## Requirements
 
-- nur-cms 0.19.x or 0.20.x with plugin root routes and admin components enabled.
+- nur-cms 0.20.x with plugin root routes, admin components, and the
+  `published-entry-facets` plugin host call enabled.
+- A 5,000,000-instruction override for the blog on pages containing multiple
+  rendered article previews:
+  `fuel_overrides = { blog = 5_000_000 }` in `[plugins.runtime]`.
 - Rust with the wasm32-wasip2 target.
 - The accompanying nur-cms Syntect change from this project, which adds
   syntax highlighting to safe Markdown HTML output.
@@ -39,13 +48,16 @@ changes, including the favicon.
 
 Enable the plugin and its public and admin capabilities in nur-cms.toml:
 
-~~~toml
+```toml
 [plugins]
 enabled = ["blog"]
 additional_directories = ["../nur-blog"]
 allow_root_routes = true
 allow_admin_components = true
-~~~
+
+[plugins.runtime]
+fuel_overrides = { blog = 5_000_000 }
+```
 
 `additional_directories` points to this repository, which acts as the plugin
 collection root. nur-cms then discovers the package in `blog/`. Only one
@@ -56,10 +68,10 @@ enabled plugin can own the public root route /.
 This repository expects to live next to the nur-cms checkout because the WIT
 binding in `blog/src/lib.rs` points to the nur-cms plugin interface.
 
-~~~sh
+```sh
 rustup target add wasm32-wasip2
 cargo build --target wasm32-wasip2 --release
-~~~
+```
 
 The repository root is a Cargo workspace and a nur-cms plugin collection. The
 complete plugin crate lives in `blog/`, matching the plugin ID. nur-cms ignores
@@ -67,22 +79,22 @@ the Rust and web source files and loads the manifest, generated assets,
 migrations, and Wasm component from the same directory. The resulting component
 is at:
 
-~~~text
+```text
 blog/target/wasm32-wasip2/release/nur_blog.wasm
-~~~
+```
 
 ## Install
 
 Deploy the following files while keeping their relative paths:
 
-~~~text
+```text
 blog/
 ├── LICENSE
 ├── plugin.toml
 ├── nur_blog.wasm
 ├── assets/                     # generated assets and theme-overrides.css
 └── migrations/
-~~~
+```
 
 Place the directory in a configured nur-cms plugin location. At first load,
 the plugin migration creates `settings` and `navigation` in its isolated plugin
@@ -97,9 +109,9 @@ component. For development, `blog/plugin.toml` references the Cargo target
 path. In the archive, the component is copied to `blog/nur_blog.wasm` and the
 packaged manifest is rewritten to reference that file directly:
 
-~~~sh
+```sh
 scripts/bundle.sh
-~~~
+```
 
 The resulting archive is written to dist/nur-blog-<version>.tar.gz.
 
@@ -108,6 +120,8 @@ The resulting archive is written to dist/nur-blog-<version>.tar.gz.
 Open **Blog** in the nur-cms admin menu to configure:
 
 - Site name and description
+- Default content and interface locale as a BCP 47 code, for example `en`,
+  `de`, or `de-DE`
 - Optional favicon URL, for example `/uploads/favicon.svg`; without one, the
   bundled default icon is used. Images can be selected from the existing
   nur-cms media browser.
@@ -122,14 +136,14 @@ navigation are validated before they are stored.
 
 ## Public routes
 
-| Route | Content |
-| --- | --- |
-| / | Hero and newest article previews |
-| /page/2 | Further preview pages |
-| /search?q=term | Search published Articles and Pages |
-| /favicon.ico | Bundled default favicon |
-| /{article_type}/{slug} | Full CMS Article |
-| /{slug} | Full CMS Page |
+| Route                  | Content                             |
+| ---------------------- | ----------------------------------- |
+| /                      | Hero and newest article previews    |
+| /page/2                | Further preview pages               |
+| /search?q=term         | Search published Articles and Pages |
+| /favicon.ico           | Bundled default favicon             |
+| /{article_type}/{slug} | Full CMS Article                    |
+| /{slug}                | Full CMS Page                       |
 
 For example, configuring article_type as artikel renders an article at
 /artikel/mein-beitrag.
@@ -138,9 +152,29 @@ The search opens from the sidebar or mobile header and with `Command+K` on
 macOS or `Ctrl+K` on other systems. Results use nur-cms full-text search and
 remain limited to published content.
 
+## Internationalization
+
+The configured default locale controls both the public interface language and
+the `locale` filter applied to every nur-cms content query. The included
+interface translations are English and German. Regional variants such as
+`de-DE` fall back to their base language and then to English.
+
+Visitors can switch between German and English from the sidebar or mobile
+navigation. The selected locale is carried in the `locale` query parameter and
+is retained by internal navigation, article, pagination, and search links. A
+language switch keeps the current page and its other query parameters.
+
+Fixed interface text lives in [blog/locales](blog/locales) and is compiled into
+the Wasm component with rust-i18n. The build script generates the admin
+component's translation dictionary from the same files, so public and admin
+translations share one source. Adding another locale file also adds that locale
+to the public language selector. Article and Page translations remain managed
+by nur-cms.
+
 ## Themes
 
-[blog/web/blog.css](blog/web/blog.css) contains the complete responsive base design.
+[blog/web/blog.css](blog/web/blog.css) contains the complete responsive base
+design with a spacious two-column composition and content-focused type hierarchy.
 Override its --blog-* custom properties, or component classes, in
 [blog/assets/theme-overrides.css](blog/assets/theme-overrides.css). That file is loaded
 after the base stylesheet, remains readable, and is never overwritten by the
@@ -148,20 +182,20 @@ build. Syntax-highlight colors are exposed through the --blog-code-* custom
 properties as well.
 
 The build script minifies CSS with Lightning CSS and JavaScript with Oxc, then
-writes deployable files to blog/assets/*.min.css and
-blog/assets/*.min.js. Generated files are ignored by Git. Public stylesheets use the
+writes deployable files to `blog/assets/*.min.css` and
+`blog/assets/*.min.js`. Generated files are ignored by Git. Public stylesheets use the
 package version as a query parameter, for example ?v=0.1.0.
 
 ## Development checks
 
-~~~sh
+```sh
 cargo fmt --check
 cargo clippy --target wasm32-wasip2 -- -D warnings
 cargo test
 cargo build --target wasm32-wasip2 --release
 scripts/bundle.sh
 node --check blog/web/admin.js
-~~~
+```
 
 ## License
 

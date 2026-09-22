@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 pub struct BlogConfig {
     pub site_name: String,
     pub site_description: String,
+    #[serde(default = "default_locale")]
+    pub default_locale: String,
     #[serde(default)]
     pub favicon_url: Option<String>,
     pub article_type: String,
@@ -12,6 +14,10 @@ pub struct BlogConfig {
     pub posts_per_page: usize,
     #[serde(default)]
     pub navigation: Vec<NavigationItem>,
+    #[serde(skip)]
+    pub active_category: Option<String>,
+    #[serde(skip)]
+    pub current_url: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -27,6 +33,9 @@ impl BlogConfig {
         }
         if self.site_description.len() > 300 {
             return Err("site description must contain at most 300 characters");
+        }
+        if !valid_locale(&self.default_locale) {
+            return Err("default locale is invalid");
         }
         if self
             .favicon_url
@@ -58,6 +67,25 @@ impl BlogConfig {
         }
         Ok(())
     }
+}
+
+fn default_locale() -> String {
+    "en".into()
+}
+
+pub fn valid_locale(locale: &str) -> bool {
+    if !(2..=7).contains(&locale.len()) {
+        return false;
+    }
+    let mut parts = locale.split('-');
+    let Some(language) = parts.next() else {
+        return false;
+    };
+    (2..=8).contains(&language.len())
+        && language.bytes().all(|byte| byte.is_ascii_alphabetic())
+        && parts.all(|part| {
+            (1..=8).contains(&part.len()) && part.bytes().all(|byte| byte.is_ascii_alphanumeric())
+        })
 }
 
 pub fn valid_slug(slug: &str) -> bool {
@@ -106,6 +134,29 @@ mod tests {
     fn rejects_unsafe_navigation_urls() {
         let config: BlogConfig = serde_json::from_str(
             r#"{"site_name":"Notes","site_description":"","article_type":"article","page_type":"page","index_page_slug":null,"posts_per_page":6,"navigation":[{"label":"Bad","href":"javascript:alert(1)"}]}"#,
+        )
+        .expect("settings deserialize");
+
+        assert!(config.validate().is_err());
+    }
+
+    #[test]
+    fn accepts_bcp47_locale_and_defaults_to_english() {
+        let config: BlogConfig = serde_json::from_str(
+            r#"{"site_name":"Notes","site_description":"","article_type":"article","page_type":"page","index_page_slug":null,"posts_per_page":6}"#,
+        )
+        .expect("settings deserialize");
+        assert_eq!(config.default_locale, "en");
+
+        let mut regional = config;
+        regional.default_locale = "de-DE".into();
+        assert!(regional.validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_invalid_locale() {
+        let config: BlogConfig = serde_json::from_str(
+            r#"{"site_name":"Notes","site_description":"","default_locale":"de_DE","article_type":"article","page_type":"page","index_page_slug":null,"posts_per_page":6}"#,
         )
         .expect("settings deserialize");
 

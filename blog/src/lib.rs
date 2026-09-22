@@ -1,3 +1,10 @@
+use bindings::{
+    exports::nur::cms::http_handler::{Guest, PluginError, Request, Response},
+    nur::cms::types::Header,
+};
+use percent_encoding::percent_decode_str;
+use rust_i18n::t;
+
 mod config;
 mod content;
 mod db;
@@ -10,19 +17,14 @@ mod bindings {
     });
 }
 
-use bindings::{
-    exports::nur::cms::http_handler::{Guest, PluginError, Request, Response},
-    nur::cms::types::Header,
-};
-use config::BlogConfig;
-use percent_encoding::percent_decode_str;
-
 use crate::{
-    config::valid_slug,
+    config::{BlogConfig, valid_locale, valid_slug},
     content::entry,
     db::handles::configuration,
     view::{article_page, content_page, home_page, response, search_page, search_results},
 };
+
+rust_i18n::i18n!("locales", fallback = "en");
 
 struct Blog;
 
@@ -31,7 +33,7 @@ impl Guest for Blog {
         match request.route_id.as_str() {
             "settings" => settings_response(configuration::load_config()?),
             "settings-update" => update_settings(request.body),
-            "home" => render_home(0),
+            "home" => render_home(&request, 0),
             "pagination" => render_pagination(&request),
             "article" => render_article(&request),
             "search" => render_search(&request),
@@ -59,8 +61,8 @@ fn default_favicon_response() -> Response {
     }
 }
 
-fn render_home(offset: usize) -> Result<Response, PluginError> {
-    let config = configuration::load_config()?;
+fn render_home(request: &Request, offset: usize) -> Result<Response, PluginError> {
+    let config = public_config(request)?;
     response(
         &config,
         config.site_name.clone(),
@@ -70,29 +72,41 @@ fn render_home(offset: usize) -> Result<Response, PluginError> {
 
 fn render_pagination(request: &Request) -> Result<Response, PluginError> {
     let page = path_param(request, "number").and_then(parse_page_number)?;
-    let config = configuration::load_config()?;
+    let config = public_config(request)?;
     response(
         &config,
-        format!("{} · Page {page}", config.site_name),
+        t!(
+            "pagination.title",
+            locale = &config.default_locale,
+            page = page
+        )
+        .to_string(),
         home_page(&config, (page - 1) * config.posts_per_page)?,
     )
 }
 
 fn render_article(request: &Request) -> Result<Response, PluginError> {
-    let config = configuration::load_config()?;
+    let config = public_config(request)?;
     let article_type = path_param(request, "article_type")?;
     let slug = path_param(request, "slug")?;
     if article_type != config.article_type || !valid_slug(slug) {
         return Err(PluginError::NotFound);
     }
 
-    let article = entry(&config.article_type, slug)?.ok_or(PluginError::NotFound)?;
-    let title = content::title(&article, "Article").to_owned();
-    response(&config, title, article_page(&article))
+    let article =
+        entry(&config.article_type, &config.default_locale, slug)?.ok_or(PluginError::NotFound)?;
+    let title = article
+        .title(&t!("content.article", locale = &config.default_locale))
+        .to_owned();
+    response(
+        &config,
+        title,
+        article_page(&article, &config.default_locale),
+    )
 }
 
 fn render_search(request: &Request) -> Result<Response, PluginError> {
-    let config = configuration::load_config()?;
+    let config = public_config(request)?;
     let query = query_parameter(request.query.as_deref(), "q")?
         .unwrap_or_default()
         .trim()
@@ -103,7 +117,12 @@ fn render_search(request: &Request) -> Result<Response, PluginError> {
         ));
     }
     let results = if query.chars().count() >= 2 {
-        content::search(&config.article_type, &config.page_type, &query)?
+        content::search(
+            &config.article_type,
+            &config.page_type,
+            &config.default_locale,
+            &query,
+        )?
     } else {
         Vec::new()
     };
@@ -111,27 +130,42 @@ fn render_search(request: &Request) -> Result<Response, PluginError> {
     if query_parameter(request.query.as_deref(), "fragment")?.as_deref() == Some("1") {
         return Ok(Response {
             status: 200,
-            headers: vec![Header {
-                name: "content-type".into(),
-                value: "text/html; charset=utf-8".into(),
-            }],
-            body: search_results(&query, &results).into_string().into_bytes(),
+            headers: vec![
+                Header {
+                    name: "content-type".into(),
+                    value: "text/html; charset=utf-8".into(),
+                },
+                Header {
+                    name: "content-language".into(),
+                    value: config.default_locale.clone(),
+                },
+            ],
+            body: search_results(&query, &results, &config.default_locale)
+                .into_string()
+                .into_bytes(),
         });
     }
 
-    response(&config, "Search".into(), search_page(&query, &results))
+    response(
+        &config,
+        t!("search.label", locale = &config.default_locale).to_string(),
+        search_page(&query, &results, &config.default_locale),
+    )
 }
 
 fn render_content_page(request: &Request) -> Result<Response, PluginError> {
-    let config = configuration::load_config()?;
+    let config = public_config(request)?;
     let slug = path_param(request, "page_slug")?;
     if !valid_slug(slug) {
         return Err(PluginError::NotFound);
     }
 
-    let page = entry(&config.page_type, slug)?.ok_or(PluginError::NotFound)?;
-    let title = content::title(&page, "Page").to_owned();
-    response(&config, title, content_page(&page))
+    let page =
+        entry(&config.page_type, &config.default_locale, slug)?.ok_or(PluginError::NotFound)?;
+    let title = page
+        .title(&t!("content.page", locale = &config.default_locale))
+        .to_owned();
+    response(&config, title, content_page(&page, &config.default_locale))
 }
 
 fn path_param<'a>(request: &'a Request, name: &str) -> Result<&'a str, PluginError> {
@@ -141,6 +175,35 @@ fn path_param<'a>(request: &'a Request, name: &str) -> Result<&'a str, PluginErr
         .find(|parameter| parameter.name == name)
         .map(|parameter| parameter.value.as_str())
         .ok_or(PluginError::NotFound)
+}
+
+fn public_config(request: &Request) -> Result<BlogConfig, PluginError> {
+    let mut config = configuration::load_config()?;
+    config.current_url = request_url(request);
+    if let Some(locale) = query_parameter(request.query.as_deref(), "locale")? {
+        if !valid_locale(&locale) {
+            return Err(PluginError::BadRequest("locale is invalid".into()));
+        }
+        config.default_locale = locale;
+    }
+    if let Some(category) = query_parameter(request.query.as_deref(), "category")? {
+        if !valid_slug(&category) {
+            return Err(PluginError::BadRequest("category is invalid".into()));
+        }
+        config.active_category = Some(category);
+    }
+    Ok(config)
+}
+
+fn request_url(request: &Request) -> String {
+    request
+        .query
+        .as_deref()
+        .filter(|query| !query.is_empty())
+        .map_or_else(
+            || request.path.clone(),
+            |query| format!("{}?{query}", request.path),
+        )
 }
 
 fn parse_page_number(value: &str) -> Result<usize, PluginError> {
@@ -203,6 +266,18 @@ mod tests {
         assert_eq!(
             query_parameter(Some("q=rust+und+wasm%3F&fragment=1"), "q").unwrap(),
             Some("rust und wasm?".into())
+        );
+    }
+
+    #[test]
+    fn regional_locale_uses_base_language_translation() {
+        assert_eq!(
+            rust_i18n::t!("article.read", locale = "de-DE").to_string(),
+            "Artikel lesen"
+        );
+        assert_eq!(
+            rust_i18n::t!("pagination.title", locale = "de", page = 2).to_string(),
+            "Seite 2"
         );
     }
 }

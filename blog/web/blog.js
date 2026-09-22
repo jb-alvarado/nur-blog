@@ -1,3 +1,36 @@
+const locale = document.documentElement.lang || navigator.language;
+const dateTimeFormatter = new Intl.DateTimeFormat(locale, {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  timeZoneName: "short",
+});
+
+for (const element of document.querySelectorAll("time[data-local-datetime]")) {
+  const date = new Date(element.dateTime);
+  if (!Number.isNaN(date.valueOf()))
+    element.textContent = dateTimeFormatter.format(date);
+}
+
+const menuToggle = document.querySelector("[data-menu-toggle]");
+const mobileMenu = document.querySelector("[data-mobile-menu]");
+
+const closeMenu = () => {
+  if (!menuToggle || !mobileMenu) return;
+  mobileMenu.hidden = true;
+  menuToggle.setAttribute("aria-expanded", "false");
+};
+
+if (menuToggle && mobileMenu) {
+  menuToggle.addEventListener("click", () => {
+    const open = mobileMenu.hidden;
+    mobileMenu.hidden = !open;
+    menuToggle.setAttribute("aria-expanded", String(open));
+  });
+}
+
 const dialog = document.querySelector("#search-dialog");
 
 if (dialog) {
@@ -6,6 +39,13 @@ if (dialog) {
   const results = dialog.querySelector(".search-modal-results");
   let request;
   let debounce;
+
+  const showState = (message) => {
+    const state = document.createElement("p");
+    state.className = "search-state";
+    state.textContent = message;
+    results.replaceChildren(state);
+  };
 
   const open = () => {
     if (!dialog.open) dialog.showModal();
@@ -18,15 +58,15 @@ if (dialog) {
     const query = input.value.trim();
     request?.abort();
     if (query.length < 2) {
-      results.innerHTML =
-        '<p class="search-state">Enter at least two characters.</p>';
+      showState(dialog.dataset.searchMinimum);
       return;
     }
 
     request = new AbortController();
-    results.innerHTML = '<p class="search-state">Searching…</p>';
+    showState(dialog.dataset.searchSearching);
     const url = new URL(form.action, window.location.origin);
     url.searchParams.set("q", query);
+    url.searchParams.set("locale", form.elements.locale.value);
     url.searchParams.set("fragment", "1");
 
     try {
@@ -38,14 +78,14 @@ if (dialog) {
       results.innerHTML = await response.text();
     } catch (error) {
       if (error.name !== "AbortError")
-        results.innerHTML =
-          '<p class="search-state">Search is currently unavailable.</p>';
+        showState(dialog.dataset.searchUnavailable);
     }
   };
 
   for (const trigger of document.querySelectorAll("[data-search-open]"))
     trigger.addEventListener("click", (event) => {
       event.preventDefault();
+      closeMenu();
       open();
     });
 
@@ -64,6 +104,7 @@ if (dialog) {
     debounce = setTimeout(search, 180);
   });
   document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") closeMenu();
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
       event.preventDefault();
       dialog.open ? close() : open();

@@ -8,8 +8,8 @@ use crate::{
 
 pub fn load_config() -> Result<BlogConfig, PluginError> {
     let result = database::execute(&Statement {
-        sql: "SELECT site_name, site_description, favicon_url, article_type, page_type, \
-              index_page_slug, posts_per_page FROM settings WHERE id = 1"
+        sql: "SELECT site_name, site_description, default_locale, favicon_url, article_type, \
+              page_type, index_page_slug, posts_per_page FROM settings WHERE id = 1"
             .into(),
         params: Vec::new(),
     })?;
@@ -34,12 +34,13 @@ pub fn update(config: BlogConfig) -> Result<(), PluginError> {
     let mut statements = vec![
         Statement {
             sql: "UPDATE settings SET site_name = $1, site_description = $2, \
-                  favicon_url = $3, article_type = $4, page_type = $5, \
-                  index_page_slug = $6, posts_per_page = $7 WHERE id = 1"
+                  default_locale = $3, favicon_url = $4, article_type = $5, page_type = $6, \
+                  index_page_slug = $7, posts_per_page = $8 WHERE id = 1"
                 .into(),
             params: vec![
                 DatabaseValue::Text(config.site_name.clone()),
                 DatabaseValue::Text(config.site_description.clone()),
+                DatabaseValue::Text(config.default_locale.clone()),
                 optional_text(&config.favicon_url),
                 DatabaseValue::Text(config.article_type.clone()),
                 DatabaseValue::Text(config.page_type.clone()),
@@ -74,6 +75,7 @@ fn settings(rows: &[Vec<DatabaseValue>]) -> Result<BlogConfig, PluginError> {
     let [
         DatabaseValue::Text(site_name),
         DatabaseValue::Text(site_description),
+        DatabaseValue::Text(default_locale),
         favicon_url,
         DatabaseValue::Text(article_type),
         DatabaseValue::Text(page_type),
@@ -87,12 +89,15 @@ fn settings(rows: &[Vec<DatabaseValue>]) -> Result<BlogConfig, PluginError> {
     Ok(BlogConfig {
         site_name: site_name.clone(),
         site_description: site_description.clone(),
+        default_locale: default_locale.clone(),
         favicon_url: nullable_text(favicon_url)?,
         article_type: article_type.clone(),
         page_type: page_type.clone(),
         index_page_slug: nullable_text(index_page_slug)?,
         posts_per_page: usize::try_from(*posts_per_page).map_err(|_| settings_unavailable())?,
         navigation: Vec::new(),
+        active_category: None,
+        current_url: "/".into(),
     })
 }
 

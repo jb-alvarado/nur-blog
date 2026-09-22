@@ -3,7 +3,7 @@ id = "blog"
 name = "Blog"
 version = "0.1.0"
 api_version = 1
-cms_version = ">=0.19, <0.21"
+cms_version = ">=0.20, <0.21"
 module = "target/wasm32-wasip2/release/nur_blog.wasm"
 
 [migrations]
@@ -13,7 +13,7 @@ directory = "migrations"
 directory = "assets"
 
 [cache]
-ttl_seconds = 300
+ttl_seconds = 43200
 max_entries = 256
 
 [[routes]]
