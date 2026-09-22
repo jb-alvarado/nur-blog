@@ -8,6 +8,7 @@ use rust_i18n::t;
 mod config;
 mod content;
 mod db;
+mod robots;
 mod sitemap;
 mod view;
 
@@ -39,6 +40,7 @@ impl Guest for Blog {
             "search" => render_search(&request, None),
             "favicon" => Ok(default_favicon_response()),
             "sitemap" => render_sitemap(&request),
+            "robots" => robots::response(&request),
             "localized-home" => render_one_segment(&request),
             "one-segment" => render_one_segment(&request),
             "two-segments" => render_two_segments(&request),

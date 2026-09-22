@@ -22,6 +22,8 @@ favicon changes.
 - A dynamic `/sitemap.xml` containing the localized home pages and every
   published Page and Article in the blog's available locales. Absolute URLs use
   nur-cms's `server.public_url`, with forwarded request headers as fallback.
+- A dynamic `/robots.txt` that references the sitemap and excludes the internal
+  nur-cms API, authentication, administration, SSE, and private-file routes.
 - An optional Page before the article overview, intended for the home-page
   hero.
 - Full-text search across published Articles and Pages in a keyboard-accessible
@@ -149,6 +151,7 @@ navigation are validated before they are stored.
 | /page/2                | Further preview pages                 |
 | /search?q=term         | Search published Articles and Pages   |
 | /favicon.ico           | Bundled default favicon               |
+| /robots.txt            | Crawler rules and sitemap reference   |
 | /sitemap.xml           | Dynamic sitemap for published content |
 | /{article_type}/{slug} | Full CMS Article                      |
 | /{slug}                | Full CMS Page                         |

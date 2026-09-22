@@ -95,7 +95,7 @@ fn sitemap_locales(config: &BlogConfig) -> Vec<String> {
     locales
 }
 
-fn preferred_origin(
+pub(crate) fn preferred_origin(
     configured_public_url: Option<String>,
     headers: &[Header],
 ) -> Result<String, PluginError> {

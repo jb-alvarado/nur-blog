@@ -54,6 +54,14 @@ access = "public"
 cache = false
 
 [[routes]]
+id = "robots"
+method = "GET"
+path = "/robots.txt"
+scope = "root"
+access = "public"
+cache = false
+
+[[routes]]
 id = "localized-home"
 method = "GET"
 path = "/{first}/"
