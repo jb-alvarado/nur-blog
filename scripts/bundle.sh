@@ -4,7 +4,7 @@ set -euo pipefail
 project_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 archive_name="nur-blog"
 plugin_id="blog"
-package_version="$(awk -F '"' '/^version = / { print $2; exit }' "$project_root/blog/Cargo.toml")"
+package_version="$(awk -F '"' '/^version = / { print $2; exit }' "$project_root/Cargo.toml")"
 archive_dir="$project_root/dist"
 archive_path="$archive_dir/$archive_name-$package_version.tar.gz"
 stage_dir="$(mktemp -d "${TMPDIR:-/tmp}/$archive_name.XXXXXX")"
