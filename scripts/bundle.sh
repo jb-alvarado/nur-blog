@@ -29,6 +29,7 @@ for asset in \
 done
 test -f blog/assets/theme-overrides.css
 test -s blog/assets/favicon.svg
+test -s blog/assets/sitemap.xsl
 
 install -d "$package_dir/assets" "$package_dir/migrations"
 install -m 0644 README.md LICENSE "$package_dir"
@@ -39,6 +40,7 @@ install -m 0644 \
     blog/assets/admin.min.css \
     blog/assets/admin.min.js \
     blog/assets/favicon.svg \
+    blog/assets/sitemap.xsl \
     blog/assets/theme-overrides.css \
     "$package_dir/assets"
 install -m 0644 "$source_wasm" "$package_dir/$package_wasm"

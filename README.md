@@ -10,7 +10,8 @@ The plugin provides a restrained, blog design with a header, footer
 and with a persistent left-side navigation on large screens, an
 optional CMS-driven hero, article previews and pagination. Its settings are
 maintained in the nur-cms admin interface, so a rebuild is not needed when the
-site name, content-type slugs or navigation changes, including the favicon.
+localized site name, site description, navigation, content-type slugs or
+favicon changes.
 
 ## Features
 
@@ -18,12 +19,16 @@ site name, content-type slugs or navigation changes, including the favicon.
   pagination.
 - CMS Pages at /{page_slug} and Articles at
   /{article_type}/{article_slug}.
+- A dynamic `/sitemap.xml` containing the localized home pages and every
+  published Page and Article in the blog's available locales. Absolute URLs use
+  nur-cms's `server.public_url`, with forwarded request headers as fallback.
 - An optional Page before the article overview, intended for the home-page
   hero.
 - Full-text search across published Articles and Pages in a keyboard-accessible
   modal, with a non-JavaScript search page as fallback.
-- Locale-filtered CMS content and compile-time English and German interface
-  translations powered by [rust-i18n](https://github.com/longbridge/rust-i18n).
+- Independently configurable website locales with localized site identity,
+  index Page and navigation. Fixed English and German interface translations
+  are powered by [rust-i18n](https://github.com/longbridge/rust-i18n).
 - Category navigation with article counts in the desktop sidebar and as a
   dropdown in the mobile menu. Category filters are retained during pagination
   and language changes.
@@ -36,7 +41,8 @@ site name, content-type slugs or navigation changes, including the favicon.
 ## Requirements
 
 - nur-cms 0.20.x with plugin root routes, admin components, and the
-  `published-entry-facets` plugin host call enabled.
+  `published-entry-facets` and `published-entry-references` plugin host calls
+  enabled.
 - A 5,000,000-instruction override for the blog on pages containing multiple
   rendered article previews:
   `fuel_overrides = { blog = 5_000_000 }` in `[plugins.runtime]`.
@@ -97,9 +103,10 @@ blog/
 ```
 
 Place the directory in a configured nur-cms plugin location. At first load,
-the plugin migration creates `settings` and `navigation` in its isolated plugin
-schema and inserts sensible defaults. Each scalar setting has its own typed
-column; ordered navigation entries remain relational rows.
+the plugin migration creates `settings`, `site_localization`, and `navigation`
+in its isolated plugin schema and inserts English and German defaults. Global
+settings have typed columns; localized website fields and ordered navigation
+entries remain relational rows.
 
 ### Create a release archive
 
@@ -119,16 +126,16 @@ The resulting archive is written to dist/nur-blog-<version>.tar.gz.
 
 Open **Blog** in the nur-cms admin menu to configure:
 
-- Site name and description
-- Default content and interface locale as a BCP 47 code, for example `en`,
-  `de`, or `de-DE`
+- Default website locale as a BCP 47 code, for example `en`, `de`, or `de-DE`
+- Optional multilingual routes and language selection. The selector is shown
+  only when this option is enabled and at least two website locales exist.
+- Up to 20 website locales, each with its own site name, description,
+  optional index-Page slug, and ordered navigation
 - Optional favicon URL, for example `/uploads/favicon.svg`; without one, the
   bundled default icon is used. Images can be selected from the existing
   nur-cms media browser.
 - Article and Page content-type slugs
-- Optional index-Page slug for the hero
 - Articles per overview page, from 1 to 24
-- Ordered navigation links
 
 Navigation destinations may be root-relative paths such as /about, or https://
 and http:// URLs. The favicon accepts the same URL forms. Settings and
@@ -136,14 +143,20 @@ navigation are validated before they are stored.
 
 ## Public routes
 
-| Route                  | Content                             |
-| ---------------------- | ----------------------------------- |
-| /                      | Hero and newest article previews    |
-| /page/2                | Further preview pages               |
-| /search?q=term         | Search published Articles and Pages |
-| /favicon.ico           | Bundled default favicon             |
-| /{article_type}/{slug} | Full CMS Article                    |
-| /{slug}                | Full CMS Page                       |
+| Route                  | Content                               |
+| ---------------------- | ------------------------------------- |
+| /                      | Hero and newest article previews      |
+| /page/2                | Further preview pages                 |
+| /search?q=term         | Search published Articles and Pages   |
+| /favicon.ico           | Bundled default favicon               |
+| /sitemap.xml           | Dynamic sitemap for published content |
+| /{article_type}/{slug} | Full CMS Article                      |
+| /{slug}                | Full CMS Page                         |
+| /de/                   | Localized home page                   |
+| /de/page/2             | Localized preview page                |
+| /de/search?q=term      | Localized search                      |
+| /de/{article_type}/{slug} | Localized CMS Article             |
+| /de/{slug}             | Localized CMS Page                    |
 
 For example, configuring article_type as artikel renders an article at
 /artikel/mein-beitrag.
@@ -154,22 +167,37 @@ remain limited to published content.
 
 ## Internationalization
 
-The configured default locale controls both the public interface language and
-the `locale` filter applied to every nur-cms content query. The included
-interface translations are English and German. Regional variants such as
-`de-DE` fall back to their base language and then to English.
+The configured website locales control localized site names and descriptions,
+the hero's index Page, navigation, and the `locale` filter applied to nur-cms
+content queries. When multilingual support is enabled, they also control the
+public language selector and localized routes. The default locale has no URL
+prefix. Each additional locale uses a leading path segment.
 
-Visitors can switch between German and English from the sidebar or mobile
-navigation. The selected locale is carried in the `locale` query parameter and
-is retained by internal navigation, article, pagination, and search links. A
-language switch keeps the current page and its other query parameters.
+Fixed interface text such as search labels, pagination, and accessibility text
+is compiled with rust-i18n. English and German are included. Regional variants
+such as `de-DE` fall back to their base language and then to English for these
+fixed labels. A website locale without a matching compiled translation remains
+fully usable and receives the English fixed labels.
+
+Visitors can switch between all configured website locales from the sidebar or
+mobile navigation. Internal navigation, articles, pagination, search, and the
+sitemap use the same canonical URL form. A language switch keeps the current
+overview or search route and its other query parameters. On a Page or Article,
+the switch follows nur-cms's content translation group and uses the translated
+entry's slug. If that group has no published entry for the selected locale, the
+link leads to that locale's home page.
 
 Fixed interface text lives in [blog/locales](blog/locales) and is compiled into
 the Wasm component with rust-i18n. The build script generates the admin
 component's translation dictionary from the same files, so public and admin
-translations share one source. Adding another locale file also adds that locale
-to the public language selector. Article and Page translations remain managed
-by nur-cms.
+translations share one source. Adding a locale file translates fixed UI text;
+adding a website localization in the admin enables its public route and
+language-selector entry. Article and Page translations remain managed by
+nur-cms.
+
+While multilingual support is enabled, locale codes are reserved as the first
+URL segment. A Page slug or article content-type slug such as `de` would then
+conflict with the localized German routes and should not be used.
 
 ## Themes
 

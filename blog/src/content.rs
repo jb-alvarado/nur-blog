@@ -4,8 +4,7 @@ use percent_encoding::{NON_ALPHANUMERIC, utf8_percent_encode};
 use rust_i18n::t;
 use serde::Deserialize;
 
-const ARTICLE_FIELDS: &str =
-    "title,slug,created_at,media,author.first_name,author.last_name,category.name,tags,node.html";
+const ARTICLE_FIELDS: &str = "group_id,title,slug,created_at,media,author.first_name,author.last_name,category.name,tags,node.html";
 const SEARCH_LIMIT_PER_TYPE: usize = 6;
 
 pub struct SearchResult {
@@ -21,6 +20,8 @@ pub struct ArticleList {
 
 #[derive(Deserialize)]
 pub struct Entry {
+    #[serde(default)]
+    pub group_id: Option<i64>,
     #[serde(default)]
     pub title: Option<String>,
     #[serde(default)]
@@ -83,6 +84,26 @@ struct EntryResponse {
 struct FacetResponse {
     #[serde(default)]
     categories: Vec<Category>,
+}
+
+#[derive(Deserialize)]
+struct PublishedEntryReference {
+    type_slug: String,
+    locale: String,
+    slug: String,
+    updated_at: String,
+}
+
+pub struct SitemapEntry {
+    pub slug: String,
+    pub updated_at: Option<String>,
+    pub article: bool,
+    pub locale: String,
+}
+
+pub struct TranslatedEntry {
+    pub locale: String,
+    pub slug: String,
 }
 
 #[derive(Deserialize)]
@@ -192,6 +213,22 @@ pub fn entry(content_type: &str, locale: &str, slug: &str) -> Result<Option<Entr
     .map(|entries| entries.into_iter().next())
 }
 
+pub fn translated_entries(
+    content_type: &str,
+    locales: &[String],
+    group_id: i64,
+) -> Result<Vec<TranslatedEntry>, PluginError> {
+    entry_references(&[content_type], locales, Some(group_id)).map(|entries| {
+        entries
+            .into_iter()
+            .map(|entry| TranslatedEntry {
+                locale: entry.locale,
+                slug: entry.slug,
+            })
+            .collect()
+    })
+}
+
 pub fn index_page(
     content_type: &str,
     locale: &str,
@@ -232,6 +269,41 @@ pub fn search(
     }
     results.truncate(10);
     Ok(results)
+}
+
+pub fn sitemap_entries(
+    article_type: &str,
+    page_type: &str,
+    locales: &[String],
+) -> Result<Vec<SitemapEntry>, PluginError> {
+    entry_references(&[article_type, page_type], locales, None).map(|entries| {
+        entries
+            .into_iter()
+            .map(|entry| SitemapEntry {
+                article: entry.type_slug == article_type,
+                slug: entry.slug,
+                updated_at: Some(entry.updated_at),
+                locale: entry.locale,
+            })
+            .collect()
+    })
+}
+
+fn entry_references(
+    content_types: &[&str],
+    locales: &[String],
+    group_id: Option<i64>,
+) -> Result<Vec<PublishedEntryReference>, PluginError> {
+    let bytes = content::published_entry_references(
+        &content_types
+            .iter()
+            .map(|value| (*value).to_owned())
+            .collect::<Vec<_>>(),
+        locales,
+        group_id,
+    )?;
+    serde_json::from_slice(&bytes)
+        .map_err(|_| PluginError::Failed("CMS returned invalid content references".into()))
 }
 
 fn search_type(
@@ -300,6 +372,7 @@ mod tests {
     fn missing_optional_fields_are_supported() {
         let entry: Entry = serde_json::from_str(r#"{"slug":"minimal"}"#).expect("minimal entry");
 
+        assert!(entry.group_id.is_none());
         assert_eq!(entry.title("Fallback"), "Fallback");
         assert!(!entry.has_html());
         assert!(entry.media_url().is_none());

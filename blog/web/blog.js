@@ -66,7 +66,6 @@ if (dialog) {
     showState(dialog.dataset.searchSearching);
     const url = new URL(form.action, window.location.origin);
     url.searchParams.set("q", query);
-    url.searchParams.set("locale", form.elements.locale.value);
     url.searchParams.set("fragment", "1");
 
     try {

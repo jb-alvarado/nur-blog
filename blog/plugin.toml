@@ -15,6 +15,7 @@ directory = "assets"
 [cache]
 ttl_seconds = 43200
 max_entries = 256
+vary_headers = []
 
 [[routes]]
 id = "home"
@@ -27,13 +28,6 @@ access = "public"
 id = "pagination"
 method = "GET"
 path = "/page/{number}"
-scope = "root"
-access = "public"
-
-[[routes]]
-id = "article"
-method = "GET"
-path = "/{article_type}/{slug}"
 scope = "root"
 access = "public"
 
@@ -52,9 +46,38 @@ scope = "root"
 access = "public"
 
 [[routes]]
-id = "page"
+id = "sitemap"
 method = "GET"
-path = "/{page_slug}"
+path = "/sitemap.xml"
+scope = "root"
+access = "public"
+cache = false
+
+[[routes]]
+id = "localized-home"
+method = "GET"
+path = "/{first}/"
+scope = "root"
+access = "public"
+
+[[routes]]
+id = "one-segment"
+method = "GET"
+path = "/{first}"
+scope = "root"
+access = "public"
+
+[[routes]]
+id = "two-segments"
+method = "GET"
+path = "/{first}/{second}"
+scope = "root"
+access = "public"
+
+[[routes]]
+id = "three-segments"
+method = "GET"
+path = "/{first}/{second}/{third}"
 scope = "root"
 access = "public"
 
