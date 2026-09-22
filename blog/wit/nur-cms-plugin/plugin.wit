@@ -1,0 +1,199 @@
+package nur:cms@0.1.0;
+
+interface types {
+  record header {
+    name: string,
+    value: string,
+  }
+
+  record identity {
+    user-id: s32,
+    roles: list<string>,
+  }
+
+  record path-param {
+    name: string,
+    value: string,
+  }
+
+  record request {
+    route-id: string,
+    method: string,
+    path: string,
+    path-params: list<path-param>,
+    query: option<string>,
+    headers: list<header>,
+    body: list<u8>,
+    identity: option<identity>,
+  }
+
+  record response {
+    status: u16,
+    headers: list<header>,
+    body: list<u8>,
+  }
+
+  variant plugin-error {
+    bad-request(string),
+    rate-limited,
+    forbidden,
+    not-found,
+    failed(string),
+  }
+}
+
+interface http-handler {
+  use types.{request, response, plugin-error};
+  handle: func(request: request) -> result<response, plugin-error>;
+}
+
+interface content {
+  use types.{plugin-error};
+
+  variant output-type {
+    markdown,
+    ast,
+    html,
+  }
+
+  /// Executes an entry-list query with the same filters and fields as the public
+  /// `/api/content/entries` endpoint. Entries are always restricted to `published`.
+  published-entries: func(query: string, output: output-type) -> result<list<u8>, plugin-error>;
+
+  /// Returns compact references for published entries across multiple content
+  /// types and locales. An optional group ID restricts the result to one
+  /// translation group.
+  published-entry-references: func(
+    content-types: list<string>,
+    locales: list<string>,
+    group-id: option<s64>,
+  ) -> result<list<u8>, plugin-error>;
+
+  /// Executes a facet query with the same filters as the public
+  /// `/api/content/entries/facets` endpoint. Facets include published entries only.
+  published-entry-facets: func(query: string) -> result<list<u8>, plugin-error>;
+}
+
+interface database {
+  use types.{plugin-error};
+
+  enum null-type {
+    boolean,
+    integer,
+    float,
+    text,
+    bytes,
+    json,
+  }
+
+  variant value {
+    null(null-type),
+    boolean(bool),
+    integer(s64),
+    float(f64),
+    text(string),
+    bytes(list<u8>),
+    json(string),
+  }
+
+  record statement {
+    sql: string,
+    params: list<value>,
+  }
+
+  record query-result {
+    rows-affected: u64,
+    columns: list<string>,
+    rows: list<list<value>>,
+  }
+
+  /// Executes one parameterized DML statement in the calling plugin's schema.
+  execute: func(statement: statement) -> result<query-result, plugin-error>;
+
+  /// Executes all statements atomically. A failing statement rolls back every prior statement.
+  transaction: func(statements: list<statement>) -> result<list<query-result>, plugin-error>;
+}
+
+interface mail {
+  use types.{plugin-error};
+
+  /// Describes whether the message body originates from public free text or a
+  /// server-side template controlled by the plugin.
+  enum content-kind {
+    /// Applies the normal spam evaluation.
+    user-input,
+    /// Skips spam evaluation and requires a matching trusted_template_targets
+    /// permission in the plugin manifest.
+    trusted-template-html,
+  }
+
+  record message {
+    target: string,
+    recipient: option<string>,
+    name: string,
+    reply-to: string,
+    subject: option<string>,
+    text: string,
+    content-kind: content-kind,
+  }
+
+  /// Sends through a configured CMS mail target without exposing SMTP credentials.
+  send: func(message: message) -> result<_, plugin-error>;
+}
+
+interface configuration {
+  /// Returns the validated canonical public CMS URL without a trailing slash.
+  public-url: func() -> option<string>;
+}
+
+interface storage {
+  use types.{plugin-error};
+
+  record file {
+    /// Stable path relative to the plugin's public or private namespace.
+    path: string,
+    /// Available only for files in a public storage directory.
+    public-url: option<string>,
+  }
+
+  /// Writes one file into a declared plugin storage directory. The file name
+  /// must not contain a path; directory layout is controlled by the manifest.
+  write: func(directory: string, filename: string, contents: list<u8>) -> result<file, plugin-error>;
+
+  /// Deletes a previously written file using the path returned by `write`.
+  delete: func(directory: string, path: string) -> result<_, plugin-error>;
+
+  record upload-link-request {
+    directory: string,
+    filename: string,
+    max-size: u64,
+    expires-seconds: u32,
+  }
+
+  record download-link-request {
+    directory: string,
+    path: string,
+    expires-seconds: u32,
+  }
+
+  record link {
+    url: string,
+  }
+
+  /// Creates a single-use, resumable browser upload capability for a directory
+  /// declared with `upload = "link"`. The token is consumed only after the host
+  /// has finalized the complete file.
+  create-upload-link: func(request: upload-link-request) -> result<link, plugin-error>;
+
+  /// Creates a single-use download capability for a file in private storage.
+  create-download-link: func(request: download-link-request) -> result<link, plugin-error>;
+}
+
+world cms-plugin {
+  import content;
+  import configuration;
+  import database;
+  import mail;
+  import storage;
+  export http-handler;
+}

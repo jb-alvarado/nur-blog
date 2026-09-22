@@ -73,9 +73,6 @@ enabled plugin can own the public root route /.
 
 ## Build
 
-This repository expects to live next to the nur-cms checkout because the WIT
-binding in `blog/src/lib.rs` points to the nur-cms plugin interface.
-
 ```sh
 rustup target add wasm32-wasip2
 cargo build --target wasm32-wasip2 --release

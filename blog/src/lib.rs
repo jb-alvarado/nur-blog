@@ -14,7 +14,7 @@ mod view;
 
 mod bindings {
     wit_bindgen::generate!({
-        path: "../../nur-cms/backend/plugins/wit/nur-cms-plugin",
+        path: "./wit/nur-cms-plugin",
         world: "cms-plugin",
     });
 }
