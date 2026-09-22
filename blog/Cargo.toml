@@ -1,9 +1,11 @@
 [package]
 name = "nur-blog"
-version = "0.1.0"
-edition = "2024"
-description = "A responsive Maud blog frontend for nur-cms"
-license = "GPL-3.0"
+description.workspace = true
+readme.workspace = true
+version.workspace = true
+license.workspace = true
+repository.workspace = true
+edition.workspace = true
 
 [lib]
 crate-type = ["cdylib"]

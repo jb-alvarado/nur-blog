@@ -2,6 +2,14 @@
 members = ["blog"]
 resolver = "2"
 
+[workspace.package]
+description = "A responsive Maud blog frontend for nur-cms"
+repository = "https://github.com/jb-alvarado/nur-blog"
+version = "0.1.0"
+readme = "README.md"
+edition = "2024"
+license = "GPL-3.0"
+
 [profile.release]
 debug = false
 lto = true
