@@ -30,19 +30,17 @@ pub fn home_page(config: &BlogConfig, offset: usize) -> Result<Markup, PluginErr
 
     Ok(html! {
         (hero)
-        section class="blog-list" aria-label=(t!("articles.latest", locale = &config.default_locale)) {
+        section
+            class="blog-list"
+            aria-label=(t!("articles.latest", locale = & config.default_locale))
+        {
             @if article_list.entries.is_empty() {
-                p class="empty-state" { (t!("articles.empty", locale = &config.default_locale)) }
+                p class="empty-state" { (t!("articles.empty", locale = & config.default_locale)) }
             } @else {
                 @for article in &article_list.entries { (article_card(config, article)) }
             }
         }
-        (pagination(
-            page,
-            total_pages,
-            config,
-            config.active_category.as_deref(),
-        ))
+        (pagination(page, total_pages, config, config.active_category.as_deref()))
     })
 }
 
@@ -77,9 +75,18 @@ pub fn search_page(query: &str, results: &[SearchResult], config: &BlogConfig) -
             p class="eyebrow" { (t!("search.label", locale = locale)) }
             h1 { (t!("search.title", locale = locale)) }
             form class="search-page-form" action=(action) method="get" {
-                label class="visually-hidden" for="search-page-input" { (t!("search.description", locale = locale)) }
-                input id="search-page-input" type="search" name="q" value=(query)
-                    placeholder=(t!("search.description", locale = locale)) minlength="2" maxlength="120" required;
+                label class="visually-hidden" for="search-page-input" {
+                    (t!("search.description", locale = locale))
+                }
+                input
+                    id="search-page-input"
+                    type="search"
+                    name="q"
+                    value=(query)
+                    placeholder=(t!("search.description", locale = locale))
+                    minlength="2"
+                    maxlength="120"
+                    required;
                 button type="submit" { (t!("search.label", locale = locale)) }
             }
             (search_results(query, results, config))
@@ -97,10 +104,13 @@ pub fn search_results(query: &str, results: &[SearchResult], config: &BlogConfig
                 p class="search-state" { (t!("search.none", locale = locale, query = query)) }
             } @else {
                 p class="search-count" {
-                    @if results.len() == 1 {
-                        (t!("search.results.one", locale = locale))
-                    } @else {
-                        (t!("search.results.other", locale = locale, count = results.len()))
+                    @if results.len() == 1 { (t!("search.results.one", locale = locale)) } @else {
+                        ({
+                            t!(
+                                "search.results.other", locale = locale, count = results
+                                .len()
+                            )
+                        })
                     }
                 }
                 ul {
@@ -109,9 +119,7 @@ pub fn search_results(query: &str, results: &[SearchResult], config: &BlogConfig
                             a href=(localized_url(&result.href, locale, config)) {
                                 span { (&result.title) }
                                 small {
-                                    @if result.article {
-                                        (t!("content.article", locale = locale))
-                                    } @else {
+                                    @if result.article { (t!("content.article", locale = locale)) } @else {
                                         (t!("content.page", locale = locale))
                                     }
                                 }
@@ -190,19 +198,28 @@ fn article_card(config: &BlogConfig, article: &Entry) -> Markup {
     html! {
         article class="article-card" {
             @if let Some(url) = article.media_url() {
-                a class="article-card-image" href=(&href)
-                    aria-label=(t!("article.read_named", locale = &config.default_locale, title = title)) {
+                a   class="article-card-image"
+                    href=(&href)
+                    aria-label=({
+                        t!(
+                            "article.read_named", locale = & config.default_locale, title
+                            = title
+                        )
+                    })
+                {
                     img src=(url) alt="" loading="lazy";
                 }
             }
             div class="article-card-body" {
                 (metadata(article))
-                h2 { a href=(&href) { (title) } }
+                h2 {
+                    a href=(&href) { (title) }
+                }
                 @if article.has_html() {
                     div class="article-summary" { (article.html()) }
                 }
                 a class="read-more" href=(&href) {
-                    (t!("article.read", locale = &config.default_locale))
+                    (t!("article.read", locale = & config.default_locale))
                     span aria-hidden="true" { " →" }
                 }
             }
@@ -220,17 +237,30 @@ fn metadata(entry: &Entry) -> Markup {
     html! {
         @if date.is_some() || category.is_some() || has_authors {
             p class="metadata" {
-                @if let Some(category) = category { span class="category" { (category) } }
+                @if let Some(category) = category {
+                    span class="category" { (category) }
+                }
                 @if let Some(date) = date {
                     time datetime=(date) data-local-datetime="" { (date) }
                 }
                 @if has_authors {
                     span {
-                        @for (index, author) in entry.authors.iter().filter(|author| !author.is_empty()).enumerate() {
+                        @for (index, author) in {
+                            entry
+                                .authors
+                                .iter()
+                                .filter(|author| !author.is_empty())
+                                .enumerate()
+                        } {
                             @if index > 0 { ", " }
                             @if let Some(first_name) = author.first_name.as_deref().filter(|name| !name.is_empty()) {
                                 (first_name)
-                                @if author.last_name.as_deref().is_some_and(|name| !name.is_empty()) { " " }
+                                @if {
+                                    author
+                                        .last_name
+                                        .as_deref()
+                                        .is_some_and(|name| !name.is_empty())
+                                } { " " }
                             }
                             @if let Some(last_name) = author.last_name.as_deref().filter(|name| !name.is_empty()) {
                                 (last_name)
@@ -247,7 +277,9 @@ fn tags(entry: &Entry, locale: &str) -> Markup {
     html! {
         @if !entry.tags.is_empty() {
             ul class="tag-list" aria-label=(t!("tags.label", locale = locale)) {
-                @for tag in &entry.tags { li { (&tag.name) } }
+                @for tag in &entry.tags {
+                    li { (&tag.name) }
+                }
             }
         }
     }
@@ -281,21 +313,21 @@ fn pagination(
                             PaginationItem::Page(number) => {
                                 li {
                                     @if number == page {
-                                        span class="pagination-current" aria-current="page"
-                                            aria-label=(t!("pagination.current", locale = locale, page = number)) {
-                                            (number)
-                                        }
+                                        span
+                                            class="pagination-current"
+                                            aria-current="page"
+                                            aria-label=(t!("pagination.current", locale = locale, page = number))
+                                        { (number) }
                                     } @else {
-                                        a href=(page_url(number, config, category))
-                                            aria-label=(t!("pagination.go_to", locale = locale, page = number)) {
-                                            (number)
-                                        }
+                                        a   href=(page_url(number, config, category))
+                                            aria-label=(t!("pagination.go_to", locale = locale, page = number))
+                                        { (number) }
                                     }
                                 }
-                            },
+                            }
                             PaginationItem::Ellipsis => {
                                 li class="pagination-ellipsis" aria-hidden="true" { "…" }
-                            },
+                            }
                         }
                     }
                 }
@@ -373,45 +405,55 @@ fn document(config: &BlogConfig, title: &str, content: Markup, categories: &[Cat
             body {
                 div class="site-shell" {
                     aside class="site-sidebar" {
-                        a class="site-brand" href=(localized_url("/", &config.default_locale, config)) { (&config.site_name) }
+                        a   class="site-brand"
+                            href=(localized_url("/", &config.default_locale, config))
+                        { (&config.site_name) }
                         p class="site-sidebar-description" { (&config.site_description) }
-                        nav class="site-navigation" aria-label=(t!("navigation.main", locale = &config.default_locale)) {
+                        nav class="site-navigation"
+                            aria-label=(t!("navigation.main", locale = & config.default_locale))
+                        {
                             @for item in &config.navigation {
-                                a href=(localized_url(&item.href, &config.default_locale, config)) { (&item.label) }
+                                a href=(localized_url(&item.href, &config.default_locale, config)) {
+                                    (&item.label)
+                                }
                             }
                         }
                         (sidebar_categories(config, categories))
                         (search_trigger(config))
-                        (language_switcher(
-                            config,
-                            "sidebar-language-switcher",
-                        ))
+                        (language_switcher(config, "sidebar-language-switcher"))
                     }
                     div class="site-main" {
                         header class="site-header" {
-                            a class="site-header-brand" href=(localized_url("/", &config.default_locale, config)) { (&config.site_name) }
+                            a   class="site-header-brand"
+                                href=(localized_url("/", &config.default_locale, config))
+                            { (&config.site_name) }
                             p { (&config.site_description) }
                             (search_trigger(config))
-                            button class="menu-toggle" type="button" data-menu-toggle
-                                aria-controls="mobile-menu" aria-expanded="false"
-                                aria-label=(t!("menu.toggle", locale = &config.default_locale)) {
-                                (menu_icon())
-                            }
+                            button
+                                class="menu-toggle"
+                                type="button"
+                                data-menu-toggle
+                                aria-controls="mobile-menu"
+                                aria-expanded="false"
+                                aria-label=(t!("menu.toggle", locale = & config.default_locale))
+                            { (menu_icon()) }
                             div class="mobile-menu" id="mobile-menu" data-mobile-menu hidden {
-                                nav class="site-header-navigation" aria-label=(t!("navigation.main", locale = &config.default_locale)) {
+                                nav class="site-header-navigation"
+                                    aria-label=(t!("navigation.main", locale = & config.default_locale))
+                                {
                                     @for item in &config.navigation {
-                                        a href=(localized_url(&item.href, &config.default_locale, config)) { (&item.label) }
+                                        a   href=(localized_url(&item.href, &config.default_locale, config))
+                                        { (&item.label) }
                                     }
                                 }
                                 (mobile_categories(config, categories))
-                                (language_switcher(
-                                    config,
-                                    "mobile-language-switcher",
-                                ))
+                                (language_switcher(config, "mobile-language-switcher"))
                             }
                         }
                         main { (content) }
-                        footer class="site-footer" { p { "© " (&config.site_name) } }
+                        footer class="site-footer" {
+                            p { "© " (&config.site_name) }
+                        }
                     }
                 }
                 (search_dialog(config))
@@ -425,8 +467,12 @@ fn document(config: &BlogConfig, title: &str, content: Markup, categories: &[Cat
 fn search_trigger(config: &BlogConfig) -> Markup {
     let locale = &config.default_locale;
     html! {
-        a class="search-trigger" href=(localized_url("/search", locale, config)) data-search-open
-            aria-haspopup="dialog" aria-label=(t!("search.label", locale = locale)) {
+        a   class="search-trigger"
+            href=(localized_url("/search", locale, config))
+            data-search-open
+            aria-haspopup="dialog"
+            aria-label=(t!("search.label", locale = locale))
+        {
             (search_icon())
             span { (t!("search.label", locale = locale)) }
             kbd { "⌘K" }
@@ -438,25 +484,43 @@ fn search_dialog(config: &BlogConfig) -> Markup {
     let locale = &config.default_locale;
     let action = localized_url("/search", locale, config);
     html! {
-        dialog class="search-dialog" id="search-dialog"
+        dialog
+            class="search-dialog"
+            id="search-dialog"
             aria-label=(t!("search.label", locale = locale))
             data-search-minimum=(t!("search.minimum", locale = locale))
             data-search-searching=(t!("search.searching", locale = locale))
-            data-search-unavailable=(t!("search.unavailable", locale = locale)) {
+            data-search-unavailable=(t!("search.unavailable", locale = locale))
+        {
             div class="search-panel" {
                 form class="search-modal-form" action=(action) method="get" {
                     (search_icon())
-                    label class="visually-hidden" for="search-modal-input" { (t!("search.description", locale = locale)) }
-                    input id="search-modal-input" type="search" name="q"
-                        placeholder=(t!("search.description", locale = locale)) autocomplete="off"
-                        minlength="2" maxlength="120" required;
-                    button class="search-close" type="button" data-search-close
-                        aria-label=(t!("search.close", locale = locale)) { "×" }
+                    label class="visually-hidden" for="search-modal-input" {
+                        (t!("search.description", locale = locale))
+                    }
+                    input
+                        id="search-modal-input"
+                        type="search"
+                        name="q"
+                        placeholder=(t!("search.description", locale = locale))
+                        autocomplete="off"
+                        minlength="2"
+                        maxlength="120"
+                        required;
+                    button
+                        class="search-close"
+                        type="button"
+                        data-search-close
+                        aria-label=(t!("search.close", locale = locale))
+                    { "×" }
                 }
                 div class="search-modal-results" aria-live="polite" {
                     p class="search-state" { (t!("search.minimum", locale = locale)) }
                 }
-                footer { span { (t!("search.description", locale = locale)) } kbd { "esc" } }
+                footer {
+                    span { (t!("search.description", locale = locale)) }
+                    kbd { "esc" }
+                }
             }
         }
     }
@@ -469,8 +533,10 @@ fn language_switcher(config: &BlogConfig, class: &str) -> Markup {
     let locale = &config.default_locale;
     let active_label = locale_label(locale);
     html! {
-        details class={ "language-switcher " (class) }
-            aria-label=(t!("language.label", locale = locale)) {
+        details
+            class={ "language-switcher " (class) }
+            aria-label=(t!("language.label", locale = locale))
+        {
             summary {
                 (language_icon())
                 span { (active_label) }
@@ -481,8 +547,9 @@ fn language_switcher(config: &BlogConfig, class: &str) -> Markup {
                     @let href = language_url(&config.current_url, code, config);
                     li {
                         @if code.eq_ignore_ascii_case(locale) {
-                            a href=(&href) lang=(&code) hreflang=(&code)
-                                aria-current="page" { (label) }
+                            a href=(&href) lang=(&code) hreflang=(&code) aria-current="page" {
+                                (label)
+                            }
                         } @else {
                             a href=(&href) lang=(&code) hreflang=(&code) { (label) }
                         }
@@ -527,7 +594,7 @@ fn sidebar_categories(config: &BlogConfig, categories: &[Category]) -> Markup {
     html! {
         @if !categories.is_empty() {
             section class="sidebar-categories" {
-                h2 { (t!("categories.label", locale = &config.default_locale)) }
+                h2 { (t!("categories.label", locale = & config.default_locale)) }
                 (category_links(config, categories))
             }
         }
@@ -538,10 +605,7 @@ fn mobile_categories(config: &BlogConfig, categories: &[Category]) -> Markup {
     html! {
         @if !categories.is_empty() {
             details class="mobile-categories" {
-                summary {
-                    (category_icon())
-                    (t!("categories.label", locale = &config.default_locale))
-                }
+                summary { (category_icon()) (t!("categories.label", locale = & config.default_locale)) }
                 (category_links(config, categories))
             }
         }
@@ -554,11 +618,11 @@ fn category_links(config: &BlogConfig, categories: &[Category]) -> Markup {
             li {
                 @if config.active_category.is_none() {
                     a href=(localized_url("/", &config.default_locale, config)) aria-current="page" {
-                        span { (t!("categories.all", locale = &config.default_locale)) }
+                        span { (t!("categories.all", locale = & config.default_locale)) }
                     }
                 } @else {
                     a href=(localized_url("/", &config.default_locale, config)) {
-                        span { (t!("categories.all", locale = &config.default_locale)) }
+                        span { (t!("categories.all", locale = & config.default_locale)) }
                     }
                 }
             }
@@ -595,7 +659,8 @@ fn language_icon() -> Markup {
     html! {
         svg class="language-icon" aria-hidden="true" viewBox="0 0 24 24" {
             circle cx="12" cy="12" r="9" {}
-            path d="M3 12h18M12 3c2.4 2.5 3.7 5.5 3.7 9S14.4 18.5 12 21M12 3c-2.4 2.5-3.7 5.5-3.7 9s1.3 6.5 3.7 9" {}
+            path
+                d="M3 12h18M12 3c2.4 2.5 3.7 5.5 3.7 9S14.4 18.5 12 21M12 3c-2.4 2.5-3.7 5.5-3.7 9s1.3 6.5 3.7 9" {}
         }
     }
 }

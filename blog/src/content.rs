@@ -362,7 +362,9 @@ mod tests {
         )
         .expect("typed CMS response");
         let entry = &response.results[0];
-        let rendered: Markup = html! { div { (entry.html()) } };
+        let rendered: Markup = html! {
+            div { (entry.html()) }
+        };
 
         assert_eq!(rendered.into_string(), "<div><p>One</p><p>Two</p></div>");
         assert!(entry.has_html());

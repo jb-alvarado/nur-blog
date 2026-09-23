@@ -56,7 +56,8 @@ fn render(
             @for locale in locales {
                 url {
                     loc {
-                        (origin) "/"
+                        (origin)
+                        "/"
                         @if !locale.eq_ignore_ascii_case(&config.site_default_locale) { (locale) "/" }
                     }
                 }
@@ -64,8 +65,13 @@ fn render(
             @for entry in entries {
                 url {
                     loc {
-                        (origin) "/"
-                        @if !entry.locale.eq_ignore_ascii_case(&config.site_default_locale) { (&entry.locale) "/" }
+                        (origin)
+                        "/"
+                        @if {
+                            !entry
+                                .locale
+                                .eq_ignore_ascii_case(&config.site_default_locale)
+                        } { (&entry.locale) "/" }
                         @if entry.article { (&config.article_type) "/" }
                         (&entry.slug)
                     }
