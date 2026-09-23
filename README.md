@@ -119,7 +119,7 @@ packaged manifest is rewritten to reference that file directly:
 scripts/bundle.sh
 ```
 
-The resulting archive is written to dist/nur-blog-<version>.tar.gz.
+The resulting archive is written to dist/nur-blog-[version].tar.gz.
 
 ## Admin settings
 
