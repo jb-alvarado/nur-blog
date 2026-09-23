@@ -18,7 +18,7 @@ trap cleanup EXIT
 cd "$project_root"
 cargo build --locked --package nur-blog --target wasm32-wasip2 --release
 
-source_wasm="target/wasm32-wasip2/release/nur_blog.wasm"
+source_wasm="blog/target/wasm32-wasip2/release/nur_blog.wasm"
 package_wasm="nur_blog.wasm"
 for asset in \
     blog/assets/blog.min.css \

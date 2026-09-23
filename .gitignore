@@ -1,5 +1,6 @@
 # Rust and Wasm build output
 /target/
+/blog/target/
 /dist/
 /blog/assets/*.min.css
 /blog/assets/*.min.js
